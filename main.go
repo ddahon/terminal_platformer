@@ -15,6 +15,7 @@ type player struct {
 	height      int
 	width       int
 	displayChar rune
+	xSpeed      int
 }
 
 type screen struct {
@@ -39,10 +40,11 @@ func initialModel() model {
 		},
 		player: player{
 			15,
-			0,
+			screenHeight,
 			5,
 			4,
 			'*',
+			2,
 		},
 	}
 }
@@ -53,9 +55,7 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-
 	switch msg := msg.(type) {
-
 	// Is it a key press?
 	case tea.KeyMsg:
 
@@ -65,9 +65,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// These keys should exit the program.
 		case "ctrl+c":
 			return m, tea.Quit
-		case "d":
+		case "d", "right":
 			m.player.moveRight(m.screen.width)
-		case "q":
+		case "q", "left":
 			m.player.moveLeft(m.screen.width)
 		}
 	}
@@ -91,11 +91,11 @@ func (p player) View() string {
 }
 
 func (p *player) moveLeft(screenWidth int) {
-	p.x = ((p.x-1)%screenWidth + screenWidth) % screenWidth
+	p.x = ((p.x-p.xSpeed)%screenWidth + screenWidth) % screenWidth
 }
 
 func (p *player) moveRight(screenWidth int) {
-	p.x = (p.x + 1) % screenWidth
+	p.x = (p.x + p.xSpeed) % screenWidth
 }
 
 func main() {
