@@ -1,15 +1,12 @@
 package main
 
-// These imports will be used later on the tutorial. If you save the file
-// now, Go might complain they are unused, but that's fine.
-// You may also need to run `go mod tidy` to download bubbletea and its
-// dependencies.
 import (
-	"fmt"
+	"log"
 	"os"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"golang.org/x/term"
 )
 
 type player struct {
@@ -20,12 +17,26 @@ type player struct {
 	displayChar rune
 }
 
+type screen struct {
+	height int
+	width  int
+}
+
 type model struct {
+	screen screen
 	player player
 }
 
 func initialModel() model {
+	screenWidth, screenHeight, err := term.GetSize(int(os.Stdin.Fd()))
+	if err != nil {
+		log.Fatalf("Failed to get terminal size: %s", err)
+	}
 	return model{
+		screen: screen{
+			height: screenHeight,
+			width:  screenWidth,
+		},
 		player: player{
 			15,
 			0,
@@ -55,9 +66,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "d":
-			m.player.moveRight()
+			m.player.moveRight(m.screen.width)
 		case "q":
-			m.player.moveLeft()
+			m.player.moveLeft(m.screen.width)
 		}
 	}
 
@@ -67,14 +78,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	s := m.player.View()
 	return s
-}
-
-func main() {
-	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
-	}
 }
 
 func (p player) sprite() string {
@@ -87,10 +90,17 @@ func (p player) View() string {
 	return y_offset + p.sprite()
 }
 
-func (p *player) moveLeft() {
-	p.x-- //todo: find width of terminal and wrap around it
+func (p *player) moveLeft(screenWidth int) {
+	p.x = ((p.x-1)%screenWidth + screenWidth) % screenWidth
 }
 
-func (p *player) moveRight() {
-	p.x++
+func (p *player) moveRight(screenWidth int) {
+	p.x = (p.x + 1) % screenWidth
+}
+
+func main() {
+	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
